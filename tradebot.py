@@ -26,7 +26,7 @@ bollinger_interval = 9
 # first state
 prices = []
 history = []
-for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, "1 hour ago UTC"):
+for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, "12 hour ago UTC"):
     float_result = float(kline[4])
     prices.append(float_result)
 ma_1 = sum(prices[-ma_1_interval:])/ma_1_interval    
