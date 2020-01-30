@@ -29,7 +29,7 @@ for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTE
     prices.append(float_result)
 ma_1 = sum(prices[-ma_1_interval:])/ma_1_interval    
 ma_2 = sum(prices[-ma_2_interval:])/ma_2_interval 
-state_temp = ma_1 > ma_2
+state_global = ma_1 > ma_2
 
 # total wallet
 markets = client.get_all_tickers()
@@ -37,28 +37,30 @@ btc_price = float(markets[11]['price'])
 info = client.get_account()
 wallet_btc = float(info['balances'][0]['free'])
 wallet_usd = float(info['balances'][11]['free'])
-wallet_all_temp = wallet_usd + wallet_btc*btc_price
+wallet_global = wallet_usd + wallet_btc*btc_price
 wallet_init = wallet_usd + wallet_btc*btc_price
-print("Total fiat correspondence: $", round(wallet_all_temp,2))
+tradeCount = 0
+wallet_at_buy = wallet_init
+wallet_at_sell = 0
+
+print("Total fiat correspondence at script start: $", round(wallet_global,2))
 
 # state track & execute on change
 def algo_bot (update):
     # total wallet
+    global wallet_global
+    global state_global
+    global tradeCount
+    global wallet_at_buy
+    global wallet_at_sell
+    
     markets = client.get_all_tickers()
     info = client.get_account()
     btc_price = float(markets[11]['price'])
     wallet_btc = float(info['balances'][0]['free'])
     wallet_usd = float(info['balances'][11]['free'])
-    wallet_all = wallet_usd + wallet_btc*btc_price
-    if 'wallet_all_temp' in locals():
-        wallet_diff = wallet_all - wallet_all_temp
-        trade_eff = wallet_diff/wallet_all_temp
-    else:
-        print("No previous trades yet.")
-        wallet_diff = 0
-        trade_eff = 0
-    total_eff = (wallet_all - wallet_init) / wallet_init
-    wallet_all_temp = wallet_all
+    wallet_local = wallet_usd + wallet_btc*btc_price
+    total_eff = (wallet_local - wallet_init) / wallet_init
     
     # get prices
     prices = []
@@ -69,26 +71,35 @@ def algo_bot (update):
     ma_1 = sum(prices[-ma_1_interval:])/ma_1_interval    
     ma_2 = sum(prices[-ma_2_interval:])/ma_2_interval    
     state = ma_1 > ma_2
-    balance = client.get_asset_balance(asset='BTC')
+    
     # add \nLast trades result: {5}% \nMax Drawdown till beginning: {6}%
-    if state != state_temp:
-        state_temp = state
+    if state != state_global:
         if state:
-            updater.bot.send_message(chat_id="@bebelere_balon", text= "Buying BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nLast trade's gain: {5}% \nTotal gain: {6}".format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_all_temp,trade_eff,total_eff))    
+            tradeCount = tradeCount+1
+            wallet_at_buy = wallet_local
+            updater.bot.send_message(chat_id="@bebelere_balon", text= "Buying BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nTotal gain: {5}".format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local,total_eff)) 
+
         else:
+            tradeCount = tradeCount+1
+            wallet_at_sell = wallet_local
+            win = (wallet_at_sell-wallet_at_buy)/wallet_at_buy
             updater.bot.send_message(chat_id="@bebelere_balon", 
                                      text= "Selling BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nLast trade's gain: {5}% \nTotal gain: {6}"
-                                     .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_all_temp, trade_eff, total_eff))
+                                     .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local, win, total_eff))
     else:
         updater.bot.send_message(chat_id="@bebelere_balon", text="No cross in BTC/USDT MA{0},MA{1}".format(ma_1_interval,ma_2_interval))
+        win = (wallet_local-wallet_at_buy)/wallet_at_buy
+        loss = (wallet_local-wallet_at_sell)
         if state:
-            updater.bot.send_message(chat_id="@bebelere_balon", text="Long mode. Enjoying the ride. \nTotal value: {0} \nGain till last trade: {1}"
-                                     .format(wallet_all_temp, trade_eff))
+            updater.bot.send_message(chat_id="@bebelere_balon", text="Long mode. Enjoying the ride. \nTotal value: {0} \nGain till last trade: {1}%"
+                                     .format(wallet_local, round(win,4)))
         else:
             updater.bot.send_message(chat_id="@bebelere_balon", text="Short mode. Waiting for the bulls \nTotal value: {0} \nGain till last trade: {1}"
-                                     .format(wallet_all_temp, trade_eff))
+                                     .format(wallet_local, round(loss,4)))
+    state_global = state
+    wallet_global = wallet_local
 
-updater.job_queue.run_repeating(algo_bot, 180, first=180)
+updater.job_queue.run_repeating(algo_bot, 1800, first=1800)
 updater.start_polling()
 updater.idle()
                                      
