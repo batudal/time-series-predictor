@@ -37,14 +37,26 @@ ma_2 = sum(prices[-ma_2_interval:])/ma_2_interval
 state_global = True
 
 # total wallet
-markets = client.get_all_tickers()
-btc_price = float(markets[11]['price'])
+trades = client.get_recent_trades(symbol='BTCUSDT')
+btc_price = float(trades[0]['price'])
 info = client.get_account()
+
+quantity = (float(info['balances'][0]['free']))/float(trades[0]['price'])*0.998
+print(info['balances'][0]['free'])
+quantity = '{:0.0{}f}'.format(quantity, 8)
+print(quantity)
+order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
+
 wallet_btc = float(info['balances'][0]['free'])
 wallet_usd = float(info['balances'][11]['free'])
 wallet_global = wallet_usd + wallet_btc*btc_price
 wallet_init = wallet_usd + wallet_btc*btc_price
+
 tradeCount = 0
+
+pair = client.get_symbol_info('BTCUSDT')
+print(pair)
+
 wallet_at_buy = wallet_init
 wallet_at_sell = 0
 
@@ -115,8 +127,9 @@ def algo_bot (update):
                                      .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local,total_eff)) 
             balance = client.get_asset_balance(asset='USDT')
             trades = client.get_recent_trades(symbol='BTCUSDT')
-            quantity = (float(balance['free']))/float(trades[0]['price'])
-            order = client.order_market_buy(symbol='BTCUSDT', quantity=(round(quantity, 6)))
+            quantity = (float(balance['free']))/float(trades[0]['price'])*0.998
+            quantity = '{:0.0{}f}'.format(quantity, 8)
+            order = client.order_market_buy(symbol='BTCUSDT', quantity=quantity)
         else:
             tradeCount = tradeCount+1
             wallet_at_sell = wallet_local
@@ -124,10 +137,11 @@ def algo_bot (update):
             updater.bot.send_message(chat_id="@bebelere_balon", 
                                      text= "Selling BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nLast trade's gain: {5}% \nTotal gain: {6}"
                                      .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local, win, total_eff))
-            balance = client.get_asset_balance(asset='BTC')
             trades = client.get_recent_trades(symbol='BTCUSDT')
-            quantity = (float(balance['free']))/float(trades[0]['price'])
-            order = client.order_market_sell(symbol='BTCUSDT', quantity=round(quantity, 6))
+            info = client.get_account()
+            quantity = float(info['balances'][0]['free'])*0.998
+            quantity = '{:0.0{}f}'.format(quantity, 8)
+            order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
 
     else:
         updater.bot.send_message(chat_id="@bebelere_balon", text="No cross or low bollinger width in BTC/USDT MA{0},MA{1}".format(ma_1_interval,ma_2_interval))
