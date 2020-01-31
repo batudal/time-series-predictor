@@ -10,6 +10,7 @@ import os
 import matplotlib.pyplot as plt
 import statistics
 from binance.enums import *
+from decimal import Decimal
 
 # binance setup
 binance_api_key = os.environ.get("BINANCE_KEY")
@@ -34,28 +35,52 @@ for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTE
     prices.append(float_result)
 ma_1 = sum(prices[-ma_1_interval:])/ma_1_interval    
 ma_2 = sum(prices[-ma_2_interval:])/ma_2_interval 
-state_global = True
+state_global = False
 
 # total wallet
 trades = client.get_recent_trades(symbol='BTCUSDT')
 btc_price = float(trades[0]['price'])
-info = client.get_account()
+balance_btc = float(client.get_asset_balance(asset='BTC')['free'])
 
-quantity = (float(info['balances'][0]['free']))/float(trades[0]['price'])*0.998
-print(info['balances'][0]['free'])
-quantity = '{:0.0{}f}'.format(quantity, 8)
+pair = client.get_symbol_info('BTCUSDT')
+minQty = float(pair['filters'][2]['minQty'])
+minQty = Decimal('{}'.format(minQty))
+maxQty = float(pair['filters'][2]['maxQty'])
+maxQty = Decimal('{}'.format(maxQty))
+stepSize = float(pair['filters'][2]['stepSize'])
+stepSize = Decimal('{}'.format(stepSize))
+print("min",minQty,"max",maxQty,"stepSize",stepSize)
+
+quantity = balance_btc * 0.998
 print(quantity)
-order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
+quantity = float('{:0.0{}f}'.format(quantity, 6))
+quantity = Decimal('{}'.format(quantity))
+print(quantity)
+diff = quantity - minQty
+print(diff)
+print("step", stepSize)
+print(diff % stepSize)
+if quantity > minQty and quantity < maxQty and ((quantity-minQty) % stepSize) == 0:
+    quantity = str(quantity)
+    print(quantity)
+    #order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
+else:
+    if quantity < minQty:
+        print("minQty problems")
+    elif quantity > maxQty:
+        print("maxQty problems")
+    elif ((quantity-minQty) % stepSize) == 0:
+        print("stepSize problems")
+        
 
-wallet_btc = float(info['balances'][0]['free'])
-wallet_usd = float(info['balances'][11]['free'])
+#order = client.order_market_sell(symbol='BTCUSDT', quantity=ax)
+
+wallet_btc = balance_btc
+wallet_usd = float(client.get_asset_balance(asset='USDT')['free'])
 wallet_global = wallet_usd + wallet_btc*btc_price
 wallet_init = wallet_usd + wallet_btc*btc_price
 
 tradeCount = 0
-
-pair = client.get_symbol_info('BTCUSDT')
-print(pair)
 
 wallet_at_buy = wallet_init
 wallet_at_sell = 0
@@ -120,7 +145,7 @@ def algo_bot (update):
     
     # add \nLast trades result: {5}% \nMax Drawdown till beginning: {6}% - bollinger kapali
     if state != state_global:
-        if state:
+        if state: #buy
             tradeCount = tradeCount+1
             wallet_at_buy = wallet_local
             updater.bot.send_message(chat_id="@bebelere_balon", text= "Buying BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nTotal gain: {5}"
@@ -128,19 +153,20 @@ def algo_bot (update):
             balance = client.get_asset_balance(asset='USDT')
             trades = client.get_recent_trades(symbol='BTCUSDT')
             quantity = (float(balance['free']))/float(trades[0]['price'])*0.998
-            quantity = '{:0.0{}f}'.format(quantity, 8)
+            quantity = '{:0.0{}f}'.format(quantity, 6)
+            quantity = str(Decimal('{}'.format(quantity)))
             order = client.order_market_buy(symbol='BTCUSDT', quantity=quantity)
-        else:
+        else: #sell
             tradeCount = tradeCount+1
             wallet_at_sell = wallet_local
             win = (wallet_at_sell-wallet_at_buy)/wallet_at_buy
             updater.bot.send_message(chat_id="@bebelere_balon", 
                                      text= "Selling BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nLast trade's gain: {5}% \nTotal gain: {6}"
                                      .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local, win, total_eff))
-            trades = client.get_recent_trades(symbol='BTCUSDT')
-            info = client.get_account()
+            balance_btc = float(client.get_asset_balance(asset='BTC')['free'])
             quantity = float(info['balances'][0]['free'])*0.998
-            quantity = '{:0.0{}f}'.format(quantity, 8)
+            quantity = '{:0.0{}f}'.format(quantity, 6)
+            quantity = str(Decimal('{}'.format(quantity)))
             order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
 
     else:
