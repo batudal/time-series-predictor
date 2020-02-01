@@ -30,47 +30,48 @@ bollinger_interval = 9
 # first state
 prices = []
 history = []
-for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "1 hour ago UTC"):
+for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, "10 hour ago UTC"):
     float_result = float(kline[4])
     prices.append(float_result)
 ma_1 = sum(prices[-ma_1_interval:])/ma_1_interval    
 ma_2 = sum(prices[-ma_2_interval:])/ma_2_interval 
-state_global = False
+state_global = True
 
 # total wallet
 trades = client.get_recent_trades(symbol='BTCUSDT')
 btc_price = float(trades[0]['price'])
 balance_btc = float(client.get_asset_balance(asset='BTC')['free'])
 
-pair = client.get_symbol_info('BTCUSDT')
-minQty = float(pair['filters'][2]['minQty'])
-minQty = Decimal('{}'.format(minQty))
-maxQty = float(pair['filters'][2]['maxQty'])
-maxQty = Decimal('{}'.format(maxQty))
-stepSize = float(pair['filters'][2]['stepSize'])
-stepSize = Decimal('{}'.format(stepSize))
-print("min",minQty,"max",maxQty,"stepSize",stepSize)
+#pair = client.get_symbol_info('BTCUSDT')
+#minQty = float(pair['filters'][2]['minQty'])
+#minQty = Decimal('{}'.format(minQty))
+#maxQty = float(pair['filters'][2]['maxQty'])
+#maxQty = Decimal('{}'.format(maxQty))
+#stepSize = float(pair['filters'][2]['stepSize'])
+#stepSize = Decimal('{}'.format(stepSize))
+#print("min",minQty,"max",maxQty,"stepSize",stepSize)
+#
+#quantity = balance_btc * 0.998
+#print(quantity)
+#quantity = float('{:0.0{}f}'.format(quantity, 6))
+#quantity = Decimal('{}'.format(quantity))
+#print(quantity)
+#diff = quantity - minQty
+#print(diff)
+#print("step", stepSize)
+#print(diff % stepSize)
 
-quantity = balance_btc * 0.998
-print(quantity)
-quantity = float('{:0.0{}f}'.format(quantity, 6))
-quantity = Decimal('{}'.format(quantity))
-print(quantity)
-diff = quantity - minQty
-print(diff)
-print("step", stepSize)
-print(diff % stepSize)
-if quantity > minQty and quantity < maxQty and ((quantity-minQty) % stepSize) == 0:
-    quantity = str(quantity)
-    print(quantity)
-    #order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
-else:
-    if quantity < minQty:
-        print("minQty problems")
-    elif quantity > maxQty:
-        print("maxQty problems")
-    elif ((quantity-minQty) % stepSize) == 0:
-        print("stepSize problems")
+#if quantity > minQty and quantity < maxQty and ((quantity-minQty) % stepSize) == 0:
+#    quantity = str(quantity)
+#    print(quantity)
+#    #order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
+#else:
+#    if quantity < minQty:
+#        print("minQty problems")
+#    elif quantity > maxQty:
+#        print("maxQty problems")
+#    elif ((quantity-minQty) % stepSize) == 0:
+#        print("stepSize problems")
         
 
 #order = client.order_market_sell(symbol='BTCUSDT', quantity=ax)
@@ -99,17 +100,16 @@ def algo_bot (update):
     bollinger_std_list = []
     bollinger_sum = 0
     
-    markets = client.get_all_tickers()
-    info = client.get_account()
-    btc_price = float(markets[11]['price'])
-    wallet_btc = float(info['balances'][0]['free'])
-    wallet_usd = float(info['balances'][11]['free'])
+    trades = client.get_recent_trades(symbol='BTCUSDT')
+    btc_price = float(trades[0]['price'])
+    wallet_btc = float(client.get_asset_balance(asset='BTC')['free'])
+    wallet_usd = float(client.get_asset_balance(asset='USDT')['free'])
     wallet_local = wallet_usd/btc_price + wallet_btc
     total_eff = (wallet_local - wallet_init) / wallet_init
     
     # get prices
     prices = []
-    for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "1 hour ago UTC"):
+    for kline in client.get_historical_klines_generator("BTCUSDT", Client.KLINE_INTERVAL_15MINUTE, "10 hour ago UTC"):
         float_result = float(kline[4])
         prices.append(float_result)
     
@@ -137,29 +137,34 @@ def algo_bot (update):
     
     # add \nLast trades result: {5}% \nMax Drawdown till beginning: {6}% - bollinger kapali
     if state != state_global:
-        if state: #buy
+        if state: 
             tradeCount = tradeCount+1
             wallet_at_buy = wallet_local
-            updater.bot.send_message(chat_id="@bebelere_balon", text= "Buying BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nTotal gain: {5}"
-                                     .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local,total_eff)) 
             balance = client.get_asset_balance(asset='USDT')
             trades = client.get_recent_trades(symbol='BTCUSDT')
             quantity = (float(balance['free']))/float(trades[0]['price'])*0.998
             quantity = '{:0.0{}f}'.format(quantity, 6)
             quantity = str(Decimal('{}'.format(quantity)))
+            latest_price = round(float(trades[0]['price']),6)
             order = client.order_market_buy(symbol='BTCUSDT', quantity=quantity)
-        else: #sell
+            updater.bot.send_message(chat_id="@bebelere_balon", text= "Buying BTC @ Price: {0} \nTotal value: {1} \nTotal gain: {2}"
+                                     .format(latest_price,round(wallet_local,6),round(total_eff,6))) 
+            updater.bot.send_animation(chat_id="@bebelere_balon", animation="https://media.giphy.com/media/sDcfxFDozb3bO/giphy.gif")
+        else:
             tradeCount = tradeCount+1
             wallet_at_sell = wallet_local
             win = (wallet_at_sell-wallet_at_buy)/wallet_at_buy
-            updater.bot.send_message(chat_id="@bebelere_balon", 
-                                     text= "Selling BTC! \nMoving Average {0} Days: {1} \nMoving Average {2} Days: {3} \nTotal value at transation time: {4} \nLast trade's gain: {5}% \nTotal gain: {6}"
-                                     .format(ma_1_interval,round(ma_1,2),ma_2_interval,round(ma_2,2),wallet_local, win, total_eff))
-            balance_btc = float(client.get_asset_balance(asset='BTC')['free'])
-            quantity = float(info['balances'][0]['free'])*0.998
-            quantity = '{:0.0{}f}'.format(quantity, 6)
+            trades = client.get_recent_trades(symbol='BTCUSDT')
+            latest_price = round(float(trades[0]['price']),6)
+            balance_btc = float(client.get_asset_balance(asset='BTC')['free'])*0.998
+            quantity = '{:0.0{}f}'.format(balance_btc, 6)
             quantity = str(Decimal('{}'.format(quantity)))
             order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
+            updater.bot.send_message(chat_id="@bebelere_balon", 
+                                     text= "Selling BTC @ {0} \nTotal value at transation time: {1} \nLast trade's gain: {2}% \nTotal gain: {3}"
+                                     .format(latest_price,round(wallet_local,6), round(win,6), round(total_eff,6)))
+            updater.bot.send_animation(chat_id="@bebelere_balon", animation="https://media.giphy.com/media/l2JdUrmFPxNZZiWYM/giphy.gif")
+
 
     else:
         if state:
@@ -170,11 +175,10 @@ def algo_bot (update):
             loss = (wallet_local-wallet_at_sell)
             updater.bot.send_message(chat_id="@bebelere_balon", text="Short mode. Waiting for the bulls \nTotal value: {0} BTC \nGain till last trade: {1}"
                                      .format(round(wallet_local,6), round(loss,4)))
-
     state_global = state
     wallet_global = wallet_local
 
-updater.job_queue.run_repeating(algo_bot, 60, first=60)
+updater.job_queue.run_repeating(algo_bot, 900, first=900)
 updater.start_polling()
 updater.idle()
                                      
