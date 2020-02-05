@@ -1,5 +1,3 @@
-## START THIS SCRIPT WHEN MA'S ARE SHOWING BUY SIGNAL
-
 import telegram.ext
 from telegram.ext import Updater, CommandHandler
 from telegram.ext import MessageHandler, Filters
