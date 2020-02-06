@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import statistics
 from binance.enums import *
 from decimal import Decimal
+import datetime
 # new_trade = trade("BINANCE_KEY","BINANCE_SECRET")
 # new_trade.getHistory(symbol,interval)
 # binance setup
@@ -81,7 +82,7 @@ class crossStrategy:
         self.price_history = setHistory(self.symbol, self.interval, self.start, self.end)
     def addMovingAverage (self):
         if len(self.price_history) == 0:
-            return print("Run getHistory to create a price_history first")
+            return print("Run setHistory to create a price_history first")
         self.ma_1 = sum(self.price_history[-self.ma_1_interval:])/self.ma_1_interval    
         self.ma_2 = sum(self.price_history[-self.ma_2_interval:])/self.ma_2_interval 
     def long (self):
@@ -99,16 +100,23 @@ class crossStrategy:
         balance = client.get_asset_balance(asset='BTC')
         qty = (float(balance['free']))*0.998
         marketSell(self.symbol, qty)
-
     def backTest (self):
-        for kline in client.get_historical_klines_generator(self.symbol, self.interval, self.start, self.end):
-            float_result = float(kline[4])
-            price_history.append(float_result)
-            if strategy.long() and strategy.bollinger():
-                strategy.buyWithAll()
+        trade_history = {}
+        state = bool
+        budget = round(float(100))
+        for kline in client.get_historical_klines(self.symbol, self.interval, self.start, self.end, limit = 1000):
+            if self.long() and self.bollinger():
+                #strategy.buyWithAll()
+                #state = True
+                #trade_history["{0}".format(kline)] = round(float(kline[4]),6)
+                buying_price = round(float(kline[4]),6)
+                btc_amount = round(float(budget/kline[4]),6)
             else:
-                strategy.sellWithAll()
-        
+                #strategy.sellWithAll()
+                state = False
+                trade_history["{0}".format(kline)] = round(float(kline[4]),6)
+                budget = btc_amount * round(float(kline[4])) - budget / buying_price
+        print(budget,trade_history)
     
         
     

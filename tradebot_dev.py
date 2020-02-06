@@ -22,7 +22,7 @@ bot = updater.bot
 job = updater.job_queue
 
 ma_1_interval = 5
-ma_2_interval = 14
+ma_2_interval = 7
 bollinger_interval = 9
 
 # first state
