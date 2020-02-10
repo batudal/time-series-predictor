@@ -39,41 +39,6 @@ state_global = True
 trades = client.get_recent_trades(symbol='BTCUSDT')
 btc_price = float(trades[0]['price'])
 balance_btc = float(client.get_asset_balance(asset='BTC')['free'])
-
-#pair = client.get_symbol_info('BTCUSDT')
-#minQty = float(pair['filters'][2]['minQty'])
-#minQty = Decimal('{}'.format(minQty))
-#maxQty = float(pair['filters'][2]['maxQty'])
-#maxQty = Decimal('{}'.format(maxQty))
-#stepSize = float(pair['filters'][2]['stepSize'])
-#stepSize = Decimal('{}'.format(stepSize))
-#print("min",minQty,"max",maxQty,"stepSize",stepSize)
-#
-#quantity = balance_btc * 0.998
-#print(quantity)
-#quantity = float('{:0.0{}f}'.format(quantity, 6))
-#quantity = Decimal('{}'.format(quantity))
-#print(quantity)
-#diff = quantity - minQty
-#print(diff)
-#print("step", stepSize)
-#print(diff % stepSize)
-
-#if quantity > minQty and quantity < maxQty and ((quantity-minQty) % stepSize) == 0:
-#    quantity = str(quantity)
-#    print(quantity)
-#    #order = client.order_market_sell(symbol='BTCUSDT', quantity=quantity)
-#else:
-#    if quantity < minQty:
-#        print("minQty problems")
-#    elif quantity > maxQty:
-#        print("maxQty problems")
-#    elif ((quantity-minQty) % stepSize) == 0:
-#        print("stepSize problems")
-        
-
-#order = client.order_market_sell(symbol='BTCUSDT', quantity=ax)
-
 wallet_btc = balance_btc
 wallet_usd = float(client.get_asset_balance(asset='USDT')['free'])
 wallet_global = wallet_usd/btc_price + wallet_btc
