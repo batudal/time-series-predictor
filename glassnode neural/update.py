@@ -1,7 +1,7 @@
 import json
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import date, datetime
 from numpy import array
 import numpy as np
 
@@ -28,9 +28,8 @@ metrics = ['addresses/new_non_zero_count', 'addresses/active_count',
 def getIndicator(metric):
 
     now = int(datetime.now().timestamp())
-    since = datetime.date(2017, 1, 1)
     res = requests.get('https://api.glassnode.com/v1/metrics/{}'.format(metric),
-        params={'api_key': API_KEY, 'a':'BTC', 's':since, 'u':now, 'i':"24h"})
+        params={'api_key': API_KEY, 'a':'BTC', 's':1483218000, 'u':now, 'i':"24h"})
 
     df = pd.read_json(res.text, convert_dates=['t'])
     del df['t']

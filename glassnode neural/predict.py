@@ -3,6 +3,8 @@ from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import Dense
 from numpy import array, hstack
+import datetime
+#import tensorflow as tf
 
 def split_sequences(sequences, n_steps):
 	X, y = list(), list()
@@ -20,7 +22,7 @@ def split_sequences(sequences, n_steps):
 
 def createStack():
     for m in update.metrics:
-        #print(m)
+        print(m)
         sr = update.getIndicator(m)
         if m == update.metrics[0]:
             df = sr
@@ -41,6 +43,10 @@ def predict(n_steps=7, epochs=200):
 	model.add(LSTM(50, activation='relu', input_shape=(n_steps, n_features)))
 	model.add(Dense(1))
 	model.compile(optimizer='adam', loss='mse')
+
+	# log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+	# tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+	
 	# fit model
 	model.fit(X, y, epochs=epochs, verbose=0)
 	# demonstrate prediction
@@ -49,5 +55,8 @@ def predict(n_steps=7, epochs=200):
 	#x_input = array([[80, 85], [90, 95], [100, 105]])
 	x_input = x_input.reshape((1, n_steps, n_features))
 	yhat = model.predict(x_input, verbose=0)
-	#print(yhat)
+	print(yhat)
 	return yhat
+
+if __name__ == "__main__":
+	predict()
