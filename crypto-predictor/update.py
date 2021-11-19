@@ -7,7 +7,7 @@ import numpy as np
 
 ### daystillhalving ozel ilgi istiyor 'indicators/stock_to_flow_ratio'
 
-API_KEY = '1qw7PqyizkXgWik1pZkm1CBxRGM'
+API_KEY = '*'
 metrics = ['addresses/new_non_zero_count', 'addresses/active_count', 
            'addresses/sending_count', 'addresses/receiving_count', 'addresses/count',
            'blockchain/block_height', 'blockchain/block_count', 'blockchain/block_interval_mean',

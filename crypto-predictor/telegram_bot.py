@@ -3,7 +3,7 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
 import os
 import predict
 
-telegram_token = '1737636285:AAEJ7ONOSv29hmOkTMzLvyVK56QckUw53qc'
+telegram_token = '*'
 updater = Updater(telegram_token, use_context=True)
 
 def makePrediction(update):
